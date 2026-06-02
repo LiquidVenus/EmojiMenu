@@ -44,7 +44,14 @@ class EmojiGifMenu {
 
   setupTabListeners() {
     this.tabButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+      btn.addEventListener('click', (e) => {
+        const tabName = e.target.dataset.tab;
+        this.switchTab(tabName);
+        // Force render when tab is clicked
+        if (tabName === 'gifs') {
+          setTimeout(() => this.renderGifs(this.gifList), 100);
+        }
+      });
     });
   }
 
@@ -97,9 +104,8 @@ class EmojiGifMenu {
   }
 
   async loadEmojiData() {
-    if (!this.emojiGrid) return;
-    
     try {
+      console.log('[EmojiGifMenu] Loading emoji data...');
       const response = await fetch('https://raw.githubusercontent.com/DrEmoji/AJPrivChat/main/Emojis/Alias.json');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
@@ -110,6 +116,8 @@ class EmojiGifMenu {
         imageUrl
       }));
       
+      console.log('[EmojiGifMenu] Loaded emojis:', this.emojiList.length);
+      
       if (this.currentTab === 'emojis') {
         this.renderEmojis(this.emojiList);
       }
@@ -119,22 +127,24 @@ class EmojiGifMenu {
   }
 
   async loadGifData() {
-    if (!this.gifGrid) return;
-    
     try {
+      console.log('[EmojiGifMenu] Loading GIF data...');
       const response = await fetch('https://raw.githubusercontent.com/LiquidVenus/EmojiMenu/main/GIFs/Alias.json');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       const data = await response.json();
+      console.log('[EmojiGifMenu] Raw GIF data:', data);
       
       this.gifList = Object.entries(data).map(([name, imageUrl]) => ({
         name,
         imageUrl
       }));
       
-      console.log('[EmojiGifMenu] Loaded GIFs:', this.gifList);
+      console.log('[EmojiGifMenu] Processed GIFs:', this.gifList);
       
+      // Always render gifs if on gifs tab
       if (this.currentTab === 'gifs') {
+        console.log('[EmojiGifMenu] On GIFs tab, rendering now');
         this.renderGifs(this.gifList);
       }
     } catch (error) {
@@ -167,13 +177,23 @@ class EmojiGifMenu {
   }
 
   renderGifs(gifsToShow = this.gifList) {
-    if (!this.gifGrid) return;
+    if (!this.gifGrid) {
+      console.error('[EmojiGifMenu] gifGrid element not found');
+      return;
+    }
     
+    console.log('[EmojiGifMenu] Rendering GIFs, count:', gifsToShow.length);
     this.gifGrid.innerHTML = '';
     
-    console.log('[EmojiGifMenu] Rendering GIFs:', gifsToShow);
+    if (gifsToShow.length === 0) {
+      console.warn('[EmojiGifMenu] No GIFs to render');
+      this.gifGrid.innerHTML = '<p>No GIFs loaded</p>';
+      return;
+    }
     
-    gifsToShow.forEach(gif => {
+    gifsToShow.forEach((gif, index) => {
+      console.log(`[EmojiGifMenu] Rendering GIF ${index}:`, gif);
+      
       const btn = document.createElement('button');
       btn.className = 'gif-btn';
       btn.title = gif.name;
@@ -181,13 +201,22 @@ class EmojiGifMenu {
       const img = document.createElement('img');
       img.src = gif.imageUrl;
       img.alt = gif.name;
-      img.onerror = () => console.error('[EmojiGifMenu] Failed to load GIF image:', gif.imageUrl);
+      img.style.display = 'block';
+      
+      img.onerror = (e) => {
+        console.error('[EmojiGifMenu] Failed to load GIF image:', gif.imageUrl);
+        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="70" height="70"%3E%3Crect fill="%23ff0000" width="70" height="70"/%3E%3Ctext x="35" y="35" text-anchor="middle" dy=".3em" fill="white" font-size="10"%3E?%3C/text%3E%3C/svg%3E';
+      };
+      
+      img.onload = () => console.log('[EmojiGifMenu] Successfully loaded GIF:', gif.name);
       
       btn.appendChild(img);
       btn.addEventListener('click', () => this.sendGif(gif.name));
       
       this.gifGrid.appendChild(btn);
     });
+    
+    console.log('[EmojiGifMenu] Finished rendering GIFs');
   }
 
   refreshCurrentTab() {
