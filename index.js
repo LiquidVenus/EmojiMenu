@@ -122,8 +122,7 @@ class EmojiGifMenu {
     if (!this.gifGrid) return;
     
     try {
-      // Update this URL to point to your GIFs data source
-      const response = await fetch('https://raw.githubusercontent.com/DrEmoji/AJPrivChat/main/GIFs/Alias.json');
+      const response = await fetch('https://raw.githubusercontent.com/LiquidVenus/EmojiMenu/main/GIFs/Alias.json');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       const data = await response.json();
@@ -132,6 +131,8 @@ class EmojiGifMenu {
         name,
         imageUrl
       }));
+      
+      console.log('[EmojiGifMenu] Loaded GIFs:', this.gifList);
       
       if (this.currentTab === 'gifs') {
         this.renderGifs(this.gifList);
@@ -170,6 +171,8 @@ class EmojiGifMenu {
     
     this.gifGrid.innerHTML = '';
     
+    console.log('[EmojiGifMenu] Rendering GIFs:', gifsToShow);
+    
     gifsToShow.forEach(gif => {
       const btn = document.createElement('button');
       btn.className = 'gif-btn';
@@ -178,6 +181,7 @@ class EmojiGifMenu {
       const img = document.createElement('img');
       img.src = gif.imageUrl;
       img.alt = gif.name;
+      img.onerror = () => console.error('[EmojiGifMenu] Failed to load GIF image:', gif.imageUrl);
       
       btn.appendChild(img);
       btn.addEventListener('click', () => this.sendGif(gif.name));
